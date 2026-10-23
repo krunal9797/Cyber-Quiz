@@ -42,27 +42,37 @@ const LOCAL_STORAGE_KEY_QUESTIONS = 'cyberquiz_local_questions';
 export async function seedInitialDatabase(force = false): Promise<void> {
   try {
     const configSnap = await getDocs(collection(db, CONFIGS_COL));
-    if (configSnap.empty || force) {
-      // Seed configs
+    const shouldUpdateConfigs =
+      configSnap.empty ||
+      force ||
+      configSnap.docs.some((d) => (d.data() as QuizConfig).questionsPerQuiz !== 20);
+
+    if (shouldUpdateConfigs) {
+      // Seed configs with 20 questions per quiz
       for (const config of INITIAL_QUIZ_CONFIGS) {
         await setDoc(doc(db, CONFIGS_COL, config.id), config);
       }
     }
 
     const questionsSnap = await getDocs(collection(db, QUESTIONS_COL));
-    if (questionsSnap.empty || force) {
-      // Seed questions
+    if (questionsSnap.empty || questionsSnap.docs.length < 100 || force) {
+      // Seed all 100 master questions
       for (const q of INITIAL_QUESTIONS) {
         await setDoc(doc(db, QUESTIONS_COL, q.id), q);
       }
     }
 
-    const studentsSnap = await getDocs(collection(db, STUDENTS_COL));
-    if (studentsSnap.empty || force) {
-      // Seed initial students
-      for (const s of INITIAL_STUDENTS) {
-        await setDoc(doc(db, STUDENTS_COL, s.studentId), s);
+    // Ensure no dummy students exist in Firestore
+    try {
+      const studentsSnap = await getDocs(collection(db, STUDENTS_COL));
+      const dummyIds = ['STU-1001', 'STU-1002', 'STU-1003', 'STU-1004'];
+      for (const d of studentsSnap.docs) {
+        if (dummyIds.includes(d.id)) {
+          await deleteDoc(doc(db, STUDENTS_COL, d.id));
+        }
       }
+    } catch {
+      // ignore
     }
   } catch (error) {
     console.warn('Seeding notice (continuing with local fallback if permissions apply):', error);
@@ -72,14 +82,18 @@ export async function seedInitialDatabase(force = false): Promise<void> {
 // ======================== STUDENTS ========================
 
 export async function getStudents(): Promise<Student[]> {
+  const dummyIds = ['STU-1001', 'STU-1002', 'STU-1003', 'STU-1004'];
   try {
     const snapshot = await getDocs(collection(db, STUDENTS_COL));
-    if (!snapshot.empty) {
-      const list: Student[] = [];
-      snapshot.forEach((d) => list.push(d.data() as Student));
-      localStorage.setItem(LOCAL_STORAGE_KEY_STUDENTS, JSON.stringify(list));
-      return list;
-    }
+    const list: Student[] = [];
+    snapshot.forEach((d) => {
+      const data = d.data() as Student;
+      if (!dummyIds.includes(data.studentId) && !dummyIds.includes(d.id)) {
+        list.push(data);
+      }
+    });
+    localStorage.setItem(LOCAL_STORAGE_KEY_STUDENTS, JSON.stringify(list));
+    return list;
   } catch (err) {
     console.warn('Could not read students from Firestore, falling back to cache:', err);
   }
@@ -87,12 +101,13 @@ export async function getStudents(): Promise<Student[]> {
   const cached = localStorage.getItem(LOCAL_STORAGE_KEY_STUDENTS);
   if (cached) {
     try {
-      return JSON.parse(cached);
+      const parsed: Student[] = JSON.parse(cached);
+      return parsed.filter((s) => !dummyIds.includes(s.studentId));
     } catch {
       // ignore
     }
   }
-  return INITIAL_STUDENTS;
+  return [];
 }
 
 export async function saveStudent(student: Student): Promise<void> {
@@ -164,6 +179,19 @@ export async function getQuizConfigs(): Promise<QuizConfig[]> {
       const list: QuizConfig[] = [];
       snapshot.forEach((d) => list.push(d.data() as QuizConfig));
       list.sort((a, b) => a.day - b.day);
+      // Ensure each day is configured for 20 questions
+      let changed = false;
+      list.forEach((c) => {
+        if (!c.questionsPerQuiz || c.questionsPerQuiz < 20) {
+          c.questionsPerQuiz = 20;
+          changed = true;
+        }
+      });
+      if (changed) {
+        for (const c of list) {
+          setDoc(doc(db, CONFIGS_COL, c.id), c).catch(() => {});
+        }
+      }
       localStorage.setItem(LOCAL_STORAGE_KEY_CONFIGS, JSON.stringify(list));
       return list;
     }
@@ -174,7 +202,13 @@ export async function getQuizConfigs(): Promise<QuizConfig[]> {
   const cached = localStorage.getItem(LOCAL_STORAGE_KEY_CONFIGS);
   if (cached) {
     try {
-      return JSON.parse(cached);
+      const list: QuizConfig[] = JSON.parse(cached);
+      if (list.length === 4) {
+        list.forEach((c) => {
+          if (!c.questionsPerQuiz || c.questionsPerQuiz < 20) c.questionsPerQuiz = 20;
+        });
+        return list;
+      }
     } catch {
       // ignore
     }
@@ -202,7 +236,7 @@ export async function saveQuizConfig(config: QuizConfig): Promise<void> {
 export async function getAllQuestions(): Promise<Question[]> {
   try {
     const snapshot = await getDocs(collection(db, QUESTIONS_COL));
-    if (!snapshot.empty) {
+    if (!snapshot.empty && snapshot.docs.length >= 100) {
       const list: Question[] = [];
       snapshot.forEach((d) => list.push(d.data() as Question));
       localStorage.setItem(LOCAL_STORAGE_KEY_QUESTIONS, JSON.stringify(list));
@@ -215,11 +249,17 @@ export async function getAllQuestions(): Promise<Question[]> {
   const cached = localStorage.getItem(LOCAL_STORAGE_KEY_QUESTIONS);
   if (cached) {
     try {
-      return JSON.parse(cached);
+      const list: Question[] = JSON.parse(cached);
+      if (list.length >= 100) {
+        return list;
+      }
     } catch {
       // ignore
     }
   }
+
+  // Fallback to complete 100-question curriculum
+  localStorage.setItem(LOCAL_STORAGE_KEY_QUESTIONS, JSON.stringify(INITIAL_QUESTIONS));
   return INITIAL_QUESTIONS;
 }
 
@@ -292,14 +332,18 @@ export async function getStudentAttempts(studentId: string): Promise<QuizAttempt
 }
 
 export async function getAllAttempts(): Promise<QuizAttempt[]> {
+  const dummyIds = ['STU-1001', 'STU-1002', 'STU-1003', 'STU-1004'];
   try {
     const snap = await getDocs(collection(db, ATTEMPTS_COL));
     const list: QuizAttempt[] = [];
-    snap.forEach((d) => list.push(d.data() as QuizAttempt));
-    if (list.length > 0) {
-      localStorage.setItem(LOCAL_STORAGE_KEY_ATTEMPTS, JSON.stringify(list));
-      return list;
-    }
+    snap.forEach((d) => {
+      const data = d.data() as QuizAttempt;
+      if (!dummyIds.includes(data.studentId)) {
+        list.push(data);
+      }
+    });
+    localStorage.setItem(LOCAL_STORAGE_KEY_ATTEMPTS, JSON.stringify(list));
+    return list;
   } catch (err) {
     console.warn('Could not query all attempts from Firestore:', err);
   }
@@ -307,7 +351,8 @@ export async function getAllAttempts(): Promise<QuizAttempt[]> {
   const cached = localStorage.getItem(LOCAL_STORAGE_KEY_ATTEMPTS);
   if (cached) {
     try {
-      return JSON.parse(cached);
+      const all: QuizAttempt[] = JSON.parse(cached);
+      return all.filter((a) => !dummyIds.includes(a.studentId));
     } catch {
       // ignore
     }

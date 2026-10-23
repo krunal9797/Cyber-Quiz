@@ -214,10 +214,20 @@ export const StudentManager: React.FC<StudentManagerProps> = ({ students, onRefr
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
-              {filtered.map((s) => (
-                <tr key={s.studentId} className="hover:bg-slate-800/40 transition-colors">
-                  <td className="py-3 px-4">
-                    <div className="font-bold text-white text-sm">{s.fullName}</div>
+              {filtered.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-12 text-center text-slate-500">
+                    <Users className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+                    <p className="font-semibold text-slate-400">No students registered yet</p>
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      Click &quot;Enroll Student&quot; above to create authorized student accounts and issue credentials.
+                    </p>
+                  </td>
+                </tr>
+              ) : filtered.map((s) => (
+                  <tr key={s.studentId} className="hover:bg-slate-800/40 transition-colors">
+                    <td className="py-3 px-4">
+                      <div className="font-bold text-white text-sm">{s.fullName}</div>
                     <div className="text-[11px] text-slate-500">{s.email || 'No email registered'}</div>
                   </td>
                   <td className="py-3 px-4 font-mono font-semibold text-cyan-300">

@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
-import { X, Lock, User, Hash, AlertCircle, Sparkles, CheckCircle2 } from 'lucide-react';
+import { X, Lock, User, Hash, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { authenticateStudent } from '../services/quizService';
 import { Student } from '../types';
-import { INITIAL_STUDENTS } from '../data/seedQuestions';
 
 interface StudentLoginModalProps {
   isOpen: boolean;
@@ -48,13 +47,6 @@ export const StudentLoginModal: React.FC<StudentLoginModalProps> = ({
     }
   };
 
-  const handleQuickDemoFill = (student: typeof INITIAL_STUDENTS[0]) => {
-    setFullName(student.fullName);
-    setIdentifier(student.studentId);
-    setPasscode(student.passcode);
-    setError(null);
-  };
-
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
       <div className="relative w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden p-6 text-slate-100">
@@ -75,29 +67,6 @@ export const StudentLoginModal: React.FC<StudentLoginModalProps> = ({
           >
             <X className="w-4 h-4" />
           </button>
-        </div>
-
-        {/* Quick Demo Pre-fill */}
-        <div className="my-4 p-3 bg-slate-950/60 rounded-xl border border-cyan-900/40">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-cyan-400 flex items-center gap-1">
-              <Sparkles className="w-3 h-3" /> Quick Demo Accounts
-            </span>
-            <span className="text-[10px] text-slate-500">Click to autofill</span>
-          </div>
-          <div className="grid grid-cols-2 gap-1.5">
-            {INITIAL_STUDENTS.slice(0, 4).map((s) => (
-              <button
-                key={s.studentId}
-                type="button"
-                onClick={() => handleQuickDemoFill(s)}
-                className="text-left px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-cyan-950/40 border border-slate-800 hover:border-cyan-700/60 transition-all text-xs"
-              >
-                <div className="font-medium text-slate-200 truncate">{s.fullName}</div>
-                <div className="text-[10px] font-mono text-cyan-400/80">{s.studentId}</div>
-              </button>
-            ))}
-          </div>
         </div>
 
         {error && (

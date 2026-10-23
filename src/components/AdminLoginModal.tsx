@@ -52,19 +52,19 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
       return;
     }
 
-    // Default admin key or passcode
-    if (adminKey.trim() === 'cyber@admin2026' || adminKey.trim() === 'admin123') {
+    // Admin password
+    if (adminKey.trim() === 'Krunal@7997@') {
       const adminObj: AdminUser = {
         uid: 'master-admin-01',
         email: 'gamitkrunal7997@gmail.com',
-        displayName: 'Lead Security Administrator',
+        displayName: 'Krunal Gamit (Administrator)',
         role: 'superadmin',
         isAuthenticated: true,
       };
       onAdminLoginSuccess(adminObj);
       onClose();
     } else {
-      setError('Incorrect Admin Master Key. Use the authorized training admin key: cyber@admin2026');
+      setError('Incorrect Admin Password. Please enter the valid admin password.');
     }
   };
 
@@ -133,11 +133,11 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
             <div className="border-t border-slate-800 w-full"></div>
           </div>
 
-          {/* Option 2: Master Security Passcode */}
+          {/* Option 2: Master Security Password */}
           <form onSubmit={handleKeySignIn} className="space-y-3">
             <div>
               <label className="block text-xs font-medium text-slate-300 mb-1">
-                Admin Security Master Key
+                Admin Password
               </label>
               <div className="relative">
                 <KeyRound className="absolute left-3 top-2.5 w-4 h-4 text-slate-500" />
@@ -145,7 +145,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
                   type="password"
                   value={adminKey}
                   onChange={(e) => setAdminKey(e.target.value)}
-                  placeholder="e.g. cyber@admin2026"
+                  placeholder="Enter administrator password"
                   className="w-full pl-9 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-sm font-mono text-slate-100 placeholder-slate-600 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all"
                 />
               </div>
@@ -159,10 +159,6 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
               <ArrowRight className="w-4 h-4" />
             </button>
           </form>
-
-          <div className="mt-4 p-2.5 rounded-lg bg-emerald-950/20 border border-emerald-800/30 text-[11px] text-emerald-300">
-            <strong>Training Admin Hint:</strong> Use key <code className="bg-emerald-950 px-1 py-0.5 rounded font-mono font-bold text-emerald-200">cyber@admin2026</code> to manage question banks, review student progress, and access private results.
-          </div>
         </div>
       </div>
     </div>

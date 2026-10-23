@@ -23,7 +23,6 @@ import {
   getStudentAttempts,
   seedInitialDatabase,
 } from './services/quizService';
-import { INITIAL_STUDENTS } from './data/seedQuestions';
 import { Shield, BookOpen, Trophy, Settings, Sparkles, UserCheck, ArrowRight } from 'lucide-react';
 
 export default function App() {
@@ -56,20 +55,22 @@ export default function App() {
         await seedInitialDatabase();
         await refreshAllData();
 
-        // Check if student was previously logged in or pre-authenticate first demo student for instant trial
+        // Clean up any legacy dummy student in localStorage
+        const dummyIds = ['STU-1001', 'STU-1002', 'STU-1003', 'STU-1004'];
         const storedStudent = localStorage.getItem('cyberquiz_current_student');
         if (storedStudent) {
           try {
             const parsed = JSON.parse(storedStudent);
-            setStudent(parsed);
+            if (!dummyIds.includes(parsed.studentId)) {
+              setStudent(parsed);
+            } else {
+              localStorage.removeItem('cyberquiz_current_student');
+              setStudent(null);
+            }
           } catch {
-            // fallback
+            localStorage.removeItem('cyberquiz_current_student');
+            setStudent(null);
           }
-        } else {
-          // Pre-select Aarav Sharma (STU-1001) as default active student for evaluator convenience
-          const defaultStudent = INITIAL_STUDENTS[0];
-          setStudent(defaultStudent);
-          localStorage.setItem('cyberquiz_current_student', JSON.stringify(defaultStudent));
         }
 
         const storedAdmin = localStorage.getItem('cyberquiz_current_admin');
@@ -166,7 +167,7 @@ export default function App() {
       title: `Day ${activeQuizDay} Quiz`,
       description: 'Cyber Crime Investigation Topic',
       timeLimitPerQuestion: 45,
-      questionsPerQuiz: 5,
+      questionsPerQuiz: 20,
       marksPerQuestion: 1,
       negativeMarksPerQuestion: 0,
       showReviewExplanations: true,

@@ -125,7 +125,7 @@ export const QuestionManager: React.FC<QuestionManagerProps> = ({ questions, onR
   };
 
   const handleRestoreDefaults = async () => {
-    if (window.confirm('Seed/Restore all 32+ default cyber curriculum questions into the bank?')) {
+    if (window.confirm('Seed/Restore all 100 default cyber curriculum questions into the bank?')) {
       await seedInitialDatabase(true);
       onRefresh();
     }

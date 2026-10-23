@@ -154,7 +154,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({
               title: `Day ${day} Quiz`,
               description: 'Cyber crime investigation topic',
               timeLimitPerQuestion: 45,
-              questionsPerQuiz: 5,
+              questionsPerQuiz: 20,
               marksPerQuestion: 1,
               negativeMarksPerQuestion: 0,
               showReviewExplanations: true,

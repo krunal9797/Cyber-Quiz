@@ -62,18 +62,6 @@ export async function seedInitialDatabase(force = false): Promise<void> {
       }
     }
 
-    // Ensure no dummy students exist in Firestore
-    try {
-      const studentsSnap = await getDocs(collection(db, STUDENTS_COL));
-      const dummyIds = ['STU-1001', 'STU-1002', 'STU-1003', 'STU-1004'];
-      for (const d of studentsSnap.docs) {
-        if (dummyIds.includes(d.id)) {
-          await deleteDoc(doc(db, STUDENTS_COL, d.id));
-        }
-      }
-    } catch {
-      // ignore
-    }
   } catch (error) {
     console.warn('Seeding notice (continuing with local fallback if permissions apply):', error);
   }
@@ -81,28 +69,11 @@ export async function seedInitialDatabase(force = false): Promise<void> {
 
 // ======================== STUDENTS ========================
 
-export async function getStudents(): Promise<Student[]> {
-  const dummyIds = ['STU-1001', 'STU-1002', 'STU-1003', 'STU-1004'];
-  try {
-    const snapshot = await getDocs(collection(db, STUDENTS_COL));
-    const list: Student[] = [];
-    snapshot.forEach((d) => {
-      const data = d.data() as Student;
-      if (!dummyIds.includes(data.studentId) && !dummyIds.includes(d.id)) {
-        list.push(data);
-      }
-    });
-    localStorage.setItem(LOCAL_STORAGE_KEY_STUDENTS, JSON.stringify(list));
-    return list;
-  } catch (err) {
-    console.warn('Could not read students from Firestore, falling back to cache:', err);
-  }
-
+function getCachedStudents(): Student[] {
   const cached = localStorage.getItem(LOCAL_STORAGE_KEY_STUDENTS);
   if (cached) {
     try {
-      const parsed: Student[] = JSON.parse(cached);
-      return parsed.filter((s) => !dummyIds.includes(s.studentId));
+      return JSON.parse(cached);
     } catch {
       // ignore
     }
@@ -110,22 +81,57 @@ export async function getStudents(): Promise<Student[]> {
   return [];
 }
 
+export async function getStudents(): Promise<Student[]> {
+  const localList = getCachedStudents();
+  try {
+    const snapshot = await getDocs(collection(db, STUDENTS_COL));
+    const remoteList: Student[] = [];
+    snapshot.forEach((d) => {
+      remoteList.push(d.data() as Student);
+    });
+
+    // Merge remote and local by studentId
+    const map = new Map<string, Student>();
+    localList.forEach((s) => map.set(s.studentId, s));
+    remoteList.forEach((s) => map.set(s.studentId, s));
+    const merged = Array.from(map.values());
+    localStorage.setItem(LOCAL_STORAGE_KEY_STUDENTS, JSON.stringify(merged));
+    return merged;
+  } catch (err) {
+    console.warn('Could not read students from Firestore, returning local cached list:', err);
+    return localList;
+  }
+}
+
 export async function saveStudent(student: Student): Promise<void> {
-  // Sync to local cache immediately
-  const current = await getStudents();
-  const updated = current.filter((s) => s.studentId !== student.studentId).concat(student);
+  const cleanStudent: Student = {
+    id: student.studentId.trim(),
+    studentId: student.studentId.trim(),
+    rollNumber: student.rollNumber.trim(),
+    fullName: student.fullName.trim(),
+    passcode: student.passcode.trim(),
+    isActive: student.isActive !== undefined ? Boolean(student.isActive) : true,
+    createdAt: student.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  if (student.email && student.email.trim()) {
+    cleanStudent.email = student.email.trim();
+  }
+
+  // Sync to local cache immediately so it displays instantly
+  const current = getCachedStudents();
+  const updated = current.filter((s) => s.studentId !== cleanStudent.studentId).concat(cleanStudent);
   localStorage.setItem(LOCAL_STORAGE_KEY_STUDENTS, JSON.stringify(updated));
 
   try {
-    await setDoc(doc(db, STUDENTS_COL, student.studentId), student);
+    await setDoc(doc(db, STUDENTS_COL, cleanStudent.studentId), cleanStudent);
   } catch (error) {
-    console.warn('Firestore write notice (student saved to local storage):', error);
+    console.warn('Firestore write notice (student retained in local storage):', error);
   }
 }
 
 export async function deleteStudent(studentId: string): Promise<void> {
-  // Sync to local cache immediately
-  const current = await getStudents();
+  const current = getCachedStudents();
   const updated = current.filter((s) => s.studentId !== studentId);
   localStorage.setItem(LOCAL_STORAGE_KEY_STUDENTS, JSON.stringify(updated));
 
@@ -333,15 +339,12 @@ export async function getStudentAttempts(studentId: string): Promise<QuizAttempt
 }
 
 export async function getAllAttempts(): Promise<QuizAttempt[]> {
-  const dummyIds = ['STU-1001', 'STU-1002', 'STU-1003', 'STU-1004'];
   try {
     const snap = await getDocs(collection(db, ATTEMPTS_COL));
     const list: QuizAttempt[] = [];
     snap.forEach((d) => {
       const data = d.data() as QuizAttempt;
-      if (!dummyIds.includes(data.studentId)) {
-        list.push(data);
-      }
+      list.push(data);
     });
     localStorage.setItem(LOCAL_STORAGE_KEY_ATTEMPTS, JSON.stringify(list));
     return list;
@@ -353,7 +356,7 @@ export async function getAllAttempts(): Promise<QuizAttempt[]> {
   if (cached) {
     try {
       const all: QuizAttempt[] = JSON.parse(cached);
-      return all.filter((a) => !dummyIds.includes(a.studentId));
+      return all;
     } catch {
       // ignore
     }

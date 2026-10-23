@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Users,
   UserPlus,
@@ -22,9 +22,16 @@ interface StudentManagerProps {
 }
 
 export const StudentManager: React.FC<StudentManagerProps> = ({ students, onRefresh }) => {
+  const [localStudents, setLocalStudents] = useState<Student[]>(students);
   const [searchQuery, setSearchQuery] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  const [successBanner, setSuccessBanner] = useState<string | null>(null);
+
+  // Sync when prop updates
+  useEffect(() => {
+    setLocalStudents(students);
+  }, [students]);
 
   // Form states
   const [fullName, setFullName] = useState('');
@@ -39,8 +46,21 @@ export const StudentManager: React.FC<StudentManagerProps> = ({ students, onRefr
   const openAdd = () => {
     setEditingStudent(null);
     setFullName('');
-    setRollNumber(`CY-2026-${String(students.length + 1).padStart(2, '0')}`);
-    setStudentId(`STU-${1000 + students.length + 1}`);
+
+    const maxNum = localStudents.reduce((max, s) => {
+      const match = s.studentId.match(/\d+$/);
+      const n = match ? parseInt(match[0], 10) : 0;
+      return n > max ? n : max;
+    }, 1000);
+
+    const maxRoll = localStudents.reduce((max, s) => {
+      const match = s.rollNumber.match(/\d+$/);
+      const n = match ? parseInt(match[0], 10) : 0;
+      return n > max ? n : max;
+    }, 0);
+
+    setRollNumber(`CY-2026-${String(maxRoll + 1).padStart(2, '0')}`);
+    setStudentId(`STU-${maxNum + 1}`);
     setPasscode(Math.random().toString(36).slice(-6));
     setEmail('');
     setIsActive(true);
@@ -76,15 +96,26 @@ export const StudentManager: React.FC<StudentManagerProps> = ({ students, onRefr
       rollNumber: rollNumber.trim(),
       fullName: fullName.trim(),
       passcode: passcode.trim(),
-      email: email.trim() || undefined,
       isActive,
       createdAt: editingStudent?.createdAt || new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
+    if (email && email.trim()) {
+      targetStudent.email = email.trim();
+    }
+
+    // Instantly update local list so the table updates immediately
+    setLocalStudents((prev) => {
+      const filtered = prev.filter((s) => s.studentId !== targetStudent.studentId);
+      return [targetStudent, ...filtered];
+    });
+
     try {
       await saveStudent(targetStudent);
       setShowAddModal(false);
+      setSuccessBanner(`Student "${targetStudent.fullName}" (${targetStudent.studentId}) saved successfully.`);
+      setTimeout(() => setSuccessBanner(null), 4000);
       onRefresh();
     } catch (err) {
       console.error(err);
@@ -96,6 +127,7 @@ export const StudentManager: React.FC<StudentManagerProps> = ({ students, onRefr
 
   const handleDelete = async (sid: string) => {
     if (window.confirm(`Are you sure you want to delete student ${sid}?`)) {
+      setLocalStudents((prev) => prev.filter((s) => s.studentId !== sid));
       try {
         await deleteStudent(sid);
         onRefresh();
@@ -106,12 +138,14 @@ export const StudentManager: React.FC<StudentManagerProps> = ({ students, onRefr
   };
 
   const handleToggleActive = async (s: Student) => {
+    const updated = {
+      ...s,
+      isActive: !s.isActive,
+      updatedAt: new Date().toISOString(),
+    };
+    setLocalStudents((prev) => prev.map((item) => (item.studentId === s.studentId ? updated : item)));
     try {
-      await saveStudent({
-        ...s,
-        isActive: !s.isActive,
-        updatedAt: new Date().toISOString(),
-      });
+      await saveStudent(updated);
       onRefresh();
     } catch (err) {
       console.error(err);
@@ -120,7 +154,7 @@ export const StudentManager: React.FC<StudentManagerProps> = ({ students, onRefr
 
   const exportStudentCredentialsCSV = () => {
     const headers = ['Student ID', 'Roll Number', 'Full Name', 'Passcode', 'Email', 'Active Status', 'Created At'];
-    const rows = students.map((s) => [
+    const rows = localStudents.map((s) => [
       `"${s.studentId}"`,
       `"${s.rollNumber}"`,
       `"${s.fullName}"`,
@@ -140,7 +174,7 @@ export const StudentManager: React.FC<StudentManagerProps> = ({ students, onRefr
     document.body.removeChild(link);
   };
 
-  const filtered = students.filter((s) => {
+  const filtered = localStudents.filter((s) => {
     const q = searchQuery.toLowerCase();
     return (
       s.fullName.toLowerCase().includes(q) ||
@@ -183,6 +217,14 @@ export const StudentManager: React.FC<StudentManagerProps> = ({ students, onRefr
         </div>
       </div>
 
+      {/* Success Notification */}
+      {successBanner && (
+        <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 text-xs flex items-center gap-2 animate-fade-in shadow-lg">
+          <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span className="font-semibold">{successBanner}</span>
+        </div>
+      )}
+
       {/* Table Container */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
         <div className="p-3.5 border-b border-slate-800 flex items-center justify-between gap-3">
@@ -197,7 +239,7 @@ export const StudentManager: React.FC<StudentManagerProps> = ({ students, onRefr
             />
           </div>
           <div className="text-xs font-mono text-slate-400">
-            {filtered.length} of {students.length} students
+            {filtered.length} of {localStudents.length} students
           </div>
         </div>
 

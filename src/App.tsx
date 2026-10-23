@@ -55,17 +55,13 @@ export default function App() {
         await seedInitialDatabase();
         await refreshAllData();
 
-        // Clean up any legacy dummy student in localStorage
-        const dummyIds = ['STU-1001', 'STU-1002', 'STU-1003', 'STU-1004'];
+        // Restore stored authenticated student session
         const storedStudent = localStorage.getItem('cyberquiz_current_student');
         if (storedStudent) {
           try {
             const parsed = JSON.parse(storedStudent);
-            if (!dummyIds.includes(parsed.studentId)) {
+            if (parsed && parsed.studentId) {
               setStudent(parsed);
-            } else {
-              localStorage.removeItem('cyberquiz_current_student');
-              setStudent(null);
             }
           } catch {
             localStorage.removeItem('cyberquiz_current_student');

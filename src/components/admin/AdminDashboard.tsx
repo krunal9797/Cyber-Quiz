@@ -63,7 +63,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
             Super Administrator Session • {admin.email || 'Admin'}
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            Cyber Training Administrative Console
+            Cyber Crime Police Station Tapi - Administrative Console
           </h1>
           <p className="text-xs sm:text-sm text-slate-400 max-w-2xl mt-1">
             Full authority to manage student logins, curriculum question pools, day timers, live quiz audits, and confidential final assessments.

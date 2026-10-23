@@ -37,14 +37,11 @@ export const Navbar: React.FC<NavbarProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-extrabold text-lg tracking-tight bg-gradient-to-r from-white via-cyan-100 to-cyan-400 bg-clip-text text-transparent">
-                CyberShield
-              </span>
-              <span className="text-[10px] font-mono uppercase tracking-widest px-1.5 py-0.5 rounded bg-cyan-950 border border-cyan-800/80 text-cyan-300">
-                Academy
+              <span className="font-extrabold text-sm sm:text-base md:text-lg tracking-tight bg-gradient-to-r from-white via-cyan-100 to-cyan-300 bg-clip-text text-transparent">
+                Cyber Crime Police Station Tapi
               </span>
             </div>
-            <p className="text-xs text-slate-400 hidden sm:block">Cyber Crime Training &amp; Assessment</p>
+            <p className="text-[11px] text-slate-400 hidden sm:block">Cyber Crime Awareness &amp; Training Platform</p>
           </div>
         </div>
 

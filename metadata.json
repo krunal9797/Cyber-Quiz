@@ -1,0 +1,8 @@
+{
+  "name": "CyberShield - Cyber Crime Quiz & Training Platform",
+  "description": "Comprehensive 4-day cyber crime awareness, OSINT, and digital investigation quiz and assessment platform with student tracking and administrative management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -1,0 +1,134 @@
+{
+  "entities": {
+    "Student": {
+      "title": "Student",
+      "description": "Registered student account credentials and profile for cyber crime quiz training program.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string", "maxLength": 64, "description": "Unique student identifier or login ID" },
+        "rollNumber": { "type": "string", "maxLength": 64, "description": "Student academic roll or batch number" },
+        "fullName": { "type": "string", "maxLength": 128, "description": "Full name of the student" },
+        "passcode": { "type": "string", "maxLength": 128, "description": "Secure access passcode assigned by administrator" },
+        "email": { "type": "string", "maxLength": 128, "description": "Optional contact email address" },
+        "isActive": { "type": "boolean", "description": "Whether the student is permitted to access the quizzes" },
+        "createdAt": { "type": "string", "description": "Creation timestamp" },
+        "updatedAt": { "type": "string", "description": "Last updated timestamp" }
+      },
+      "required": ["studentId", "rollNumber", "fullName", "passcode", "isActive"]
+    },
+    "QuizConfig": {
+      "title": "QuizConfig",
+      "description": "Day-wise configuration settings, timers, marks, and visibility toggles.",
+      "type": "object",
+      "properties": {
+        "day": { "type": "number", "description": "Day number (1 to 4)" },
+        "title": { "type": "string", "maxLength": 128, "description": "Quiz title for this day" },
+        "description": { "type": "string", "maxLength": 512, "description": "Curriculum topic description" },
+        "timeLimitPerQuestion": { "type": "number", "description": "Timer countdown in seconds for each question" },
+        "questionsPerQuiz": { "type": "number", "description": "Number of randomized questions served per student" },
+        "marksPerQuestion": { "type": "number", "description": "Marks awarded for correct answer" },
+        "negativeMarksPerQuestion": { "type": "number", "description": "Negative marks penalty" },
+        "showReviewExplanations": { "type": "boolean", "description": "Whether students see correct answers and explanations on review screen" },
+        "isLeaderboardVisible": { "type": "boolean", "description": "Whether students can view the leaderboard" },
+        "isDayActive": { "type": "boolean", "description": "Whether quiz is currently open for submission" },
+        "updatedAt": { "type": "string", "description": "Timestamp when config was updated" }
+      },
+      "required": ["day", "title", "timeLimitPerQuestion", "questionsPerQuiz", "marksPerQuestion", "showReviewExplanations", "isLeaderboardVisible", "isDayActive"]
+    },
+    "Question": {
+      "title": "Question",
+      "description": "Quiz question item with options, correct answer, and cyber crime investigation context.",
+      "type": "object",
+      "properties": {
+        "day": { "type": "number", "description": "Associated day (1: Basic, 2: Intermediate, 3: OSINT, 4: Advanced)" },
+        "question": { "type": "string", "maxLength": 1000, "description": "The question text or scenario" },
+        "options": { "type": "array", "description": "4 multiple choice options" },
+        "correctAnswerIndex": { "type": "number", "description": "Index of the correct option (0-3)" },
+        "explanation": { "type": "string", "maxLength": 2000, "description": "Detailed cyber security rationale and guidance" },
+        "category": { "type": "string", "maxLength": 64, "description": "Sub-topic e.g. Phishing, UPI Fraud, OSINT, Digital Forensics" },
+        "difficulty": { "type": "string", "enum": ["easy", "medium", "hard"], "description": "Difficulty rating" }
+      },
+      "required": ["day", "question", "options", "correctAnswerIndex", "explanation", "category", "difficulty"]
+    },
+    "QuizAttempt": {
+      "title": "QuizAttempt",
+      "description": "Recorded student quiz attempt with performance metrics, timing, and student answer selections.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string", "maxLength": 64, "description": "Student unique identifier" },
+        "studentName": { "type": "string", "maxLength": 128, "description": "Student full name" },
+        "rollNumber": { "type": "string", "maxLength": 64, "description": "Student roll number" },
+        "day": { "type": "number", "description": "Day of the quiz (1-4)" },
+        "score": { "type": "number", "description": "Marks awarded" },
+        "totalMarks": { "type": "number", "description": "Maximum possible marks" },
+        "totalQuestions": { "type": "number", "description": "Total question count" },
+        "correctCount": { "type": "number", "description": "Number of correct responses" },
+        "incorrectCount": { "type": "number", "description": "Number of incorrect responses" },
+        "unansweredCount": { "type": "number", "description": "Number of questions timed out or skipped" },
+        "timeTakenSeconds": { "type": "number", "description": "Total duration spent in seconds" },
+        "status": { "type": "string", "enum": ["in_progress", "completed"], "description": "Current status" },
+        "answers": { "type": "array", "description": "Detailed log of chosen answers and item timings" },
+        "startedAt": { "type": "string", "description": "Attempt start timestamp" },
+        "completedAt": { "type": "string", "description": "Attempt finish timestamp" }
+      },
+      "required": ["studentId", "studentName", "rollNumber", "day", "score", "totalQuestions", "correctCount", "status"]
+    },
+    "FinalResult": {
+      "title": "FinalResult",
+      "description": "Admin-only consolidated final evaluation across all 4 training days, rankings, and certifications.",
+      "type": "object",
+      "properties": {
+        "studentId": { "type": "string", "maxLength": 64, "description": "Student identifier" },
+        "rollNumber": { "type": "string", "maxLength": 64, "description": "Roll number" },
+        "fullName": { "type": "string", "maxLength": 128, "description": "Student full name" },
+        "dayScores": { "type": "object", "description": "Score map for Day 1, 2, 3, 4" },
+        "totalMarks": { "type": "number", "description": "Consolidated marks" },
+        "totalMaxMarks": { "type": "number", "description": "Total attainable marks" },
+        "totalTimeSeconds": { "type": "number", "description": "Aggregate time in seconds" },
+        "percentage": { "type": "number", "description": "Overall percentage score" },
+        "rank": { "type": "number", "description": "Final cohort ranking" },
+        "completedDaysCount": { "type": "number", "description": "Count of days finished" },
+        "isCertified": { "type": "boolean", "description": "Certificate eligibility flag" },
+        "updatedAt": { "type": "string", "description": "Consolidation timestamp" }
+      },
+      "required": ["studentId", "rollNumber", "fullName", "totalMarks", "percentage", "isCertified"]
+    },
+    "AdminProfile": {
+      "title": "AdminProfile",
+      "description": "System administrator credential and permission entry.",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string", "maxLength": 128, "description": "Admin email address" },
+        "role": { "type": "string", "enum": ["admin", "superadmin"], "description": "Administrative authority" },
+        "createdAt": { "type": "string", "description": "Enrollment timestamp" }
+      },
+      "required": ["email", "role"]
+    }
+  },
+  "firestore": {
+    "/students/{studentId}": {
+      "schema": { "$ref": "#/entities/Student" },
+      "description": "Student profile and assigned login credentials."
+    },
+    "/quiz_configs/{configId}": {
+      "schema": { "$ref": "#/entities/QuizConfig" },
+      "description": "Day-wise settings, question counts, timers, and visibility controls."
+    },
+    "/questions/{questionId}": {
+      "schema": { "$ref": "#/entities/Question" },
+      "description": "Master question bank for the 4-day cyber training curriculum."
+    },
+    "/quiz_attempts/{attemptId}": {
+      "schema": { "$ref": "#/entities/QuizAttempt" },
+      "description": "Individual student test attempts and day-wise review records."
+    },
+    "/final_results/{studentId}": {
+      "schema": { "$ref": "#/entities/FinalResult" },
+      "description": "Consolidated final evaluation and ranking - Strictly admin readable only."
+    },
+    "/admins/{adminUid}": {
+      "schema": { "$ref": "#/entities/AdminProfile" },
+      "description": "Authorized administrator registry."
+    }
+  }
+}

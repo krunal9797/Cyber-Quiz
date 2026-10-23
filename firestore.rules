@@ -1,0 +1,83 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Default deny all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && (
+        (request.auth.token.email != null && request.auth.token.email == 'gamitkrunal7997@gmail.com') ||
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Administrators registry
+    match /admins/{adminId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // Students directory
+    match /students/{studentId} {
+      allow get, list: if true;
+      allow create, update, delete: if isAdmin() || (
+        request.auth != null && request.auth.token.email == 'gamitkrunal7997@gmail.com'
+      );
+    }
+
+    // Quiz configs per day
+    match /quiz_configs/{configId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Master Questions Bank
+    match /questions/{questionId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Student Quiz Attempts
+    match /quiz_attempts/{attemptId} {
+      allow read: if true;
+      allow create: if isValidId(attemptId) &&
+        incoming().studentId is string &&
+        incoming().studentId.size() <= 64 &&
+        incoming().score is number;
+      allow update: if isAdmin() || (
+        existing().status != 'completed' &&
+        incoming().diff(existing()).affectedKeys().hasOnly([
+          'answers', 'score', 'totalQuestions', 'correctCount',
+          'incorrectCount', 'unansweredCount', 'timeTakenSeconds',
+          'status', 'completedAt'
+        ])
+      );
+      allow delete: if isAdmin();
+    }
+
+    // FINAL RESULTS: STRICTLY ADMIN ONLY! Students can NEVER read or list or write this collection.
+    match /final_results/{studentId} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

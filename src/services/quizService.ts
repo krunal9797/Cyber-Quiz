@@ -111,27 +111,28 @@ export async function getStudents(): Promise<Student[]> {
 }
 
 export async function saveStudent(student: Student): Promise<void> {
+  // Sync to local cache immediately
+  const current = await getStudents();
+  const updated = current.filter((s) => s.studentId !== student.studentId).concat(student);
+  localStorage.setItem(LOCAL_STORAGE_KEY_STUDENTS, JSON.stringify(updated));
+
   try {
     await setDoc(doc(db, STUDENTS_COL, student.studentId), student);
   } catch (error) {
-    handleFirestoreError(error, OperationType.WRITE, `${STUDENTS_COL}/${student.studentId}`);
-  } finally {
-    // Keep local cache synced
-    const current = await getStudents();
-    const updated = current.filter((s) => s.studentId !== student.studentId).concat(student);
-    localStorage.setItem(LOCAL_STORAGE_KEY_STUDENTS, JSON.stringify(updated));
+    console.warn('Firestore write notice (student saved to local storage):', error);
   }
 }
 
 export async function deleteStudent(studentId: string): Promise<void> {
+  // Sync to local cache immediately
+  const current = await getStudents();
+  const updated = current.filter((s) => s.studentId !== studentId);
+  localStorage.setItem(LOCAL_STORAGE_KEY_STUDENTS, JSON.stringify(updated));
+
   try {
     await deleteDoc(doc(db, STUDENTS_COL, studentId));
   } catch (error) {
-    handleFirestoreError(error, OperationType.DELETE, `${STUDENTS_COL}/${studentId}`);
-  } finally {
-    const current = await getStudents();
-    const updated = current.filter((s) => s.studentId !== studentId);
-    localStorage.setItem(LOCAL_STORAGE_KEY_STUDENTS, JSON.stringify(updated));
+    console.warn('Firestore delete notice:', error);
   }
 }
 

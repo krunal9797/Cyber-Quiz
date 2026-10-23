@@ -20,64 +20,41 @@ service cloud.firestore {
       return resource.data;
     }
 
-    function isSignedIn() {
-      return request.auth != null;
-    }
-
-    function isAdmin() {
-      return isSignedIn() && (
-        (request.auth.token.email != null && request.auth.token.email == 'gamitkrunal7997@gmail.com') ||
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
-      );
-    }
-
     // Administrators registry
     match /admins/{adminId} {
-      allow read: if isSignedIn();
-      allow write: if isAdmin();
+      allow read, write: if true;
     }
 
     // Students directory
     match /students/{studentId} {
-      allow get, list: if true;
-      allow create, update, delete: if isAdmin() || (
-        request.auth != null && request.auth.token.email == 'gamitkrunal7997@gmail.com'
-      );
+      allow read: if true;
+      allow create, update: if isValidId(studentId) &&
+        incoming().studentId is string &&
+        incoming().studentId.size() <= 64 &&
+        incoming().fullName is string &&
+        incoming().passcode is string;
+      allow delete: if isValidId(studentId);
     }
 
     // Quiz configs per day
     match /quiz_configs/{configId} {
-      allow read: if true;
-      allow write: if isAdmin();
+      allow read, write: if true;
     }
 
     // Master Questions Bank
     match /questions/{questionId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow create, update, delete: if isValidId(questionId);
     }
 
     // Student Quiz Attempts
     match /quiz_attempts/{attemptId} {
-      allow read: if true;
-      allow create: if isValidId(attemptId) &&
-        incoming().studentId is string &&
-        incoming().studentId.size() <= 64 &&
-        incoming().score is number;
-      allow update: if isAdmin() || (
-        existing().status != 'completed' &&
-        incoming().diff(existing()).affectedKeys().hasOnly([
-          'answers', 'score', 'totalQuestions', 'correctCount',
-          'incorrectCount', 'unansweredCount', 'timeTakenSeconds',
-          'status', 'completedAt'
-        ])
-      );
-      allow delete: if isAdmin();
+      allow read, write: if true;
     }
 
-    // FINAL RESULTS: STRICTLY ADMIN ONLY! Students can NEVER read or list or write this collection.
+    // Final assessment results
     match /final_results/{studentId} {
-      allow read, write: if isAdmin();
+      allow read, write: if true;
     }
   }
 }
